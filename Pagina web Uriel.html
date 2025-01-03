@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compra de Boletos para Rifa</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        header {
+            background-color: #333;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e7f3fe;
+            color: #31708f;
+            border: 1px solid #bce8f1;
+            border-radius: 5px;
+            display: none;
+        }
+        #paypal-button-container {
+            margin-top: 20px;
+        }
+    </style>
+    <script src="https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID&currency=USD"></script>
+</head>
+<body>
+    <header>
+        <h1>Compra de Boletos para Rifa</h1>
+    </header>
+    <div class="container">
+        <form id="ticketForm">
+            <div class="form-group">
+                <label for="ticketNumbers">Selecciona números de boletos (1-1000, separados por comas):</label>
+                <input type="text" id="ticketNumbers" name="ticketNumbers" placeholder="Ejemplo: 5,10,15" required>
+            </div>
+            <button type="submit">Validar Boletos</button>
+        </form>
+        <div id="message" class="message"></div>
+        <div id="paypal-button-container" style="display: none;"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('ticketForm');
+        const messageDiv = document.getElementById('message');
+        const paypalButtonContainer = document.getElementById('paypal-button-container');
+
+        // Lista para almacenar los números seleccionados temporalmente
+        const purchasedTickets = [];
+
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const ticketNumbersInput = document.getElementById('ticketNumbers').value;
+            const ticketNumbers = ticketNumbersInput.split(',').map(num => parseInt(num.trim()));
+
+            // Validar los números seleccionados
+            const invalidNumbers = ticketNumbers.filter(num => isNaN(num) || num < 1 || num > 1000);
+            const alreadyPurchased = ticketNumbers.filter(num => purchasedTickets.includes(num));
+
+            if (invalidNumbers.length > 0) {
+                messageDiv.textContent = `Los siguientes números no son válidos: ${invalidNumbers.join(', ')}`;
+                messageDiv.style.display = 'block';
+                messageDiv.style.backgroundColor = '#f8d7da';
+                messageDiv.style.color = '#721c24';
+                messageDiv.style.border = '1px solid #f5c6cb';
+                paypalButtonContainer.style.display = 'none';
+                return;
+            }
+
+            if (alreadyPurchased.length > 0) {
+                messageDiv.textContent = `Los siguientes números ya han sido comprados: ${alreadyPurchased.join(', ')}`;
+                messageDiv.style.display = 'block';
+                messageDiv.style.backgroundColor = '#f8d7da';
+                messageDiv.style.color = '#721c24';
+                messageDiv.style.border = '1px solid #f5c6cb';
+                paypalButtonContainer.style.display = 'none';
+                return;
+            }
+
+            messageDiv.textContent = `Números válidos. Procede a realizar el pago para los boletos: ${ticketNumbers.join(', ')}.`;
+            messageDiv.style.display = 'block';
+            messageDiv.style.backgroundColor = '#d4edda';
+            messageDiv.style.color = '#155724';
+            messageDiv.style.border = '1px solid #c3e6cb';
+
+            // Mostrar el botón de PayPal
+            paypalButtonContainer.style.display = 'block';
+
+            // Configurar el botón de PayPal
+            paypal.Buttons({
+                createOrder: function(data, actions) {
+                    return actions.order.create({
+                        purchase_units: [{
+                            amount: {
+                                value: (10.00 * ticketNumbers.length).toFixed(2) // Precio total basado en la cantidad de boletos
+                            }
+                        }]
+                    });
+                },
+                onApprove: function(data, actions) {
+                    return actions.order.capture().then(function(details) {
+                        alert(`¡Pago exitoso por ${details.payer.name.given_name}! Boletos comprados: ${ticketNumbers.join(', ')}`);
+                        // Guardar los boletos en la lista local
+                        purchasedTickets.push(...ticketNumbers);
+                    });
+                },
+                onError: function(err) {
+                    console.error(err);
+                    alert('Hubo un error al procesar el pago. Inténtalo nuevamente.');
+                }
+            }).render('#paypal-button-container');
+        });
+    </script>
+</body>
+</html>
+
